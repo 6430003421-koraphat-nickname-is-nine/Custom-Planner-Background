@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Custom Planner Background 2.9.9.5
+// @name         Custom Planner Background 2.9.9.6
 // @namespace    https://tampermonkey.net/
-// @version      2.9.9.5
+// @version      2.9.9.6
 // @description  Planner background with random Google Drive images + bucket filter (multi-pass, data-index ordered)
 // @match        https://tasks.office.com/*
 // @match        https://planner.microsoft.com/*
@@ -16,7 +16,7 @@
 (function () {
   "use strict";
 
-  const version = "2.9.9.5";
+  const version = "2.9.9.6";
 
   /* ===============================
        GOOGLE DRIVE BACKGROUNDS
@@ -174,8 +174,8 @@
             gap: 6px;
             align-items: center;
             margin-bottom: 4px;
-            font-size: 1rem;
-            line-height: 1.5rem;
+            /* font-size: 1rem; */
+            /* line-height: 1.5rem; */
         }
         .row-between {
             display: flex;
@@ -249,6 +249,19 @@
 
             transition: transform 0.05s ease, box-shadow 0.05s ease;
         }
+        
+        .bnsfh2button:hover {
+            transform: translate(-1px, -1px);
+            box-shadow:
+                inset 0 0 0 2px #F7B512,
+                3px 3px 0 rgba(0,0,0,0.6);
+        }
+        .bnsfh2button:active {
+            transform: translate(1px, 1px);
+            box-shadow:
+                inset 0 0 0 2px #F7B512,
+                1px 1px 0 rgba(0,0,0,0.6);
+        }
     `;
 
   function applyTheme() {
@@ -291,7 +304,7 @@
         <div style="margin-bottom:6px; text-align:center;">
             <button id="randomBG">Random Background</button>
             <div style="margin-top:4px;">
-                <button id="refreshBuckets">Refresh buckets</button>
+                <button id="refreshBuckets" class="bnsfh2button">Refresh buckets</button>
             </div>
         </div>
         <div id="bucket-filter-header">
