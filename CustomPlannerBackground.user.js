@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Custom Planner Background 2.9.9.6
+// @name         Custom Planner Background 2.9.9.7
 // @namespace    https://tampermonkey.net/
-// @version      2.9.9.6
+// @version      2.9.9.7
 // @description  Planner background with random Google Drive images + bucket filter (multi-pass, data-index ordered)
 // @match        https://tasks.office.com/*
 // @match        https://planner.microsoft.com/*
@@ -16,7 +16,7 @@
 (function () {
   "use strict";
 
-  const version = "2.9.9.6";
+  const version = "2.9.9.7";
 
   /* ===============================
        GOOGLE DRIVE BACKGROUNDS
@@ -303,15 +303,16 @@
   panel.innerHTML = `
         <div style="margin-bottom:6px; text-align:center;">
             <button id="randomBG">Random Background</button>
-            <div style="margin-top:4px;">
-                <button id="refreshBuckets" class="bnsfh2button">Refresh buckets</button>
-            </div>
+            
         </div>
         <div id="bucket-filter-header">
             <span class="text-center text-base">Bucket Filter v${version}</span>
             <span id="bucket-filter-toggle">–</span>
         </div>
         <div id="bucket-filter-body">
+            <div style="margin-top:4px;">
+                <button id="refreshBuckets" class="bnsfh2button">Refresh buckets</button>
+            </div>
             <div class="flex-col">
                 <h2 class="text-sm" id="bucket-count">Total buckets: 0</h2>
                 <div class="row-between">
