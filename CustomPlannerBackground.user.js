@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Custom Planner Background 2.9.4.6
+// @name         Custom Planner Background 2.9.5
 // @namespace    https://tampermonkey.net/
-// @version      2.9.4.6
-// @description  Planner background with random Google Drive images + bucket filter (multi-pass force render)
+// @version      2.9.5
+// @description  Planner background with random Google Drive images + ordered bucket filter
 // @match        https://tasks.office.com/*
 // @match        https://planner.microsoft.com/*
 // @match        https://planner.cloud.microsoft/*
@@ -19,7 +19,7 @@
     /* ===============================
        VERSION
     =============================== */
-    const version = '2.9.4.6';
+    const version = '2.9.5';
 
     /* ===============================
        GOOGLE DRIVE BACKGROUNDS
@@ -47,7 +47,7 @@
     let currentBgUrl = pickRandomBgUrl();
 
     /* ===============================
-       BASE CSS (FROM 2.9.2)
+       THEME (UNCHANGED)
     =============================== */
     const baseCSS = `
         .ms-Fabric,
@@ -58,83 +58,6 @@
             background-size: cover !important;
             background-position: center !important;
             background-repeat: no-repeat !important;
-        }
-
-        .columnsList,
-        .container {
-            background-color: transparent !important;
-        }
-
-        .taskBoardColumn {
-            background-color: rgba(255,255,255,0.25) !important;
-        }
-
-        .taskCard,
-        .taskBoardCard {
-            background-color: rgba(255,255,255,0.5) !important;
-        }
-
-        .header,
-        .filterPivotRow {
-            background-color: rgba(255,255,255,0.5) !important;
-        }
-
-        .sectionToggleButton {
-            background-color: rgba(255,255,255,0.875) !important;
-        }
-
-        .sideNav {
-            background-color: rgba(255,255,255,0.75) !important;
-        }
-
-        #bucket-filter-panel {
-            position: fixed;
-            left: 32px;
-            top: 384px;
-            z-index: 2147483647;
-            background-color: #fb923c;
-            border: 2px solid #000;
-            border-radius: 0.5rem;
-            padding: 8px 10px;
-            font-size: 12px;
-            min-width: 180px;
-            cursor: move;
-            user-select: none;
-            box-shadow: 2px 2px 0 rgba(0,0,0,0.25);
-        }
-
-        #bucket-filter-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            cursor: move;
-        }
-
-        #bucket-filter-toggle {
-            cursor: pointer;
-            font-size: 14px;
-            padding: 0 4px;
-        }
-
-        #randomBG {
-            background-color: #FF8C00;
-            color: #F7B512;
-            font-family: "Clarendon", "Georgia", serif;
-            font-weight: 700;
-            font-size: 16px;
-            padding: 8px 16px;
-            border: 2px solid #000;
-            box-shadow: inset 0 0 0 2px #F7B512;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-
-        .filter-item {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-            margin-bottom: 4px;
         }
     `;
 
@@ -172,18 +95,23 @@
     }
 
     /* ===============================
-       FILTER PANEL UI (2.9.2 STYLE)
+       FILTER PANEL UI
     =============================== */
     const panel = document.createElement('div');
     panel.id = 'bucket-filter-panel';
     panel.innerHTML = `
         <div style="margin-bottom:6px; text-align:center;">
             <button id="randomBG">Random Background</button>
+            <div style="margin-top:4px;">
+                <button id="refreshBuckets">Refresh buckets</button>
+            </div>
         </div>
+
         <div id="bucket-filter-header">
             <span>Bucket Filter v${version}</span>
             <span id="bucket-filter-toggle">–</span>
         </div>
+
         <div id="bucket-filter-body">
             <div style="font-size:11px; opacity:0.8;">Check to hide</div>
             <div class="filter-controls">
@@ -196,10 +124,11 @@
     document.body.appendChild(panel);
 
     /* ===============================
-       DRAG (UNCHANGED FROM 2.9.2)
+       DRAGGABLE PANEL
     =============================== */
     let dragging = false, ox = 0, oy = 0;
     panel.addEventListener('mousedown', e => {
+        if (e.target.closest('button')) return;
         dragging = true;
         ox = e.clientX - panel.offsetLeft;
         oy = e.clientY - panel.offsetTop;
@@ -212,20 +141,31 @@
     document.addEventListener('mouseup', () => dragging = false);
 
     /* ===============================
-       BUCKET DETECTION (STABLE)
+       BUCKET COLLECTION (ORDERED)
     =============================== */
-    const seenBuckets = new Set();
 
-    function syncBuckets() {
-        document.querySelectorAll('.taskBoardColumn').forEach(col => {
+    let bucketArray = [];
+
+    function collectBucketsInOrder() {
+        const cols = document.querySelectorAll('.taskBoardColumn');
+        const result = [];
+
+        cols.forEach(col => {
             const titleEl = col.querySelector('.columnTitle h3');
             if (!titleEl) return;
 
             const title = titleEl.innerText.trim();
-            if (seenBuckets.has(title)) return;
+            result.push({ title, col });
+        });
 
-            seenBuckets.add(title);
+        return result;
+    }
 
+    function renderBucketList() {
+        const list = document.getElementById('filter-list');
+        list.innerHTML = '';
+
+        bucketArray.forEach(({ title, col }) => {
             const item = document.createElement('div');
             item.className = 'filter-item';
 
@@ -239,7 +179,7 @@
             lbl.textContent = title;
 
             item.append(chk, lbl);
-            document.getElementById('filter-list').appendChild(item);
+            list.appendChild(item);
         });
     }
 
@@ -263,18 +203,24 @@
                 setTimeout(() => board.scrollLeft = 0, 400);
             }
         }
-
         scroll();
     }
 
-    function forceRenderMultiple(times = 3, delay = 1200) {
-        let count = 0;
+    function fullBucketRescan() {
+        let pass = 0;
+
         const runner = setInterval(() => {
             forceRenderOnce();
-            syncBuckets();
-            count++;
-            if (count >= times) clearInterval(runner);
-        }, delay);
+            pass++;
+
+            if (pass === 3) {
+                clearInterval(runner);
+                setTimeout(() => {
+                    bucketArray = collectBucketsInOrder();
+                    renderBucketList();
+                }, 600);
+            }
+        }, 1200);
     }
 
     /* ===============================
@@ -282,12 +228,15 @@
     =============================== */
     document.addEventListener('click', e => {
         if (e.target.id === 'randomBG') changeBackground();
+        if (e.target.id === 'refreshBuckets') fullBucketRescan();
+
         if (e.target.id === 'hide-all') {
-            document.querySelectorAll('.taskBoardColumn').forEach(c => c.style.display = 'none');
+            bucketArray.forEach(b => b.col.style.display = 'none');
             document.querySelectorAll('#filter-list input').forEach(c => c.checked = true);
         }
+
         if (e.target.id === 'show-all') {
-            document.querySelectorAll('.taskBoardColumn').forEach(c => c.style.display = '');
+            bucketArray.forEach(b => b.col.style.display = '');
             document.querySelectorAll('#filter-list input').forEach(c => c.checked = false);
         }
     });
@@ -300,9 +249,7 @@
         clearInterval(init);
 
         applyTheme();
-        syncBuckets();
-        forceRenderMultiple(3, 1300);     // ← NEW
-        setInterval(syncBuckets, 1000);   // ← SAFETY NET
+        fullBucketRescan();
     }, 500);
 
 })();
