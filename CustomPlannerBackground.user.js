@@ -1,15 +1,15 @@
 // ==UserScript==
-// @name         Custom Planner Background 2.9.4.4
+// @name         Custom Planner Background 2.9.4.6
 // @namespace    https://tampermonkey.net/
-// @version      2.9.4.4
-// @description  Planner background with random Google Drive images + stable bucket filter (rebased on 2.9.2)
+// @version      2.9.4.6
+// @description  Planner background with random Google Drive images + bucket filter (multi-pass force render)
 // @match        https://tasks.office.com/*
 // @match        https://planner.microsoft.com/*
 // @match        https://planner.cloud.microsoft/*
 // @match        https://*.office.com/*
-// @grant        none
 // @updateURL    https://raw.githubusercontent.com/6430003421-koraphat-nickname-is-nine/Custom-Planner-Background/main/CustomPlannerBackground.user.js
 // @downloadURL  https://raw.githubusercontent.com/6430003421-koraphat-nickname-is-nine/Custom-Planner-Background/main/CustomPlannerBackground.user.js
+// @grant        none
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -19,7 +19,7 @@
     /* ===============================
        VERSION
     =============================== */
-    const version = '2.9.4.4';
+    const version = '2.9.4.6';
 
     /* ===============================
        GOOGLE DRIVE BACKGROUNDS
@@ -47,7 +47,7 @@
     let currentBgUrl = pickRandomBgUrl();
 
     /* ===============================
-       BASE CSS (UNCHANGED FROM 2.9.2)
+       BASE CSS (FROM 2.9.2)
     =============================== */
     const baseCSS = `
         .ms-Fabric,
@@ -172,7 +172,7 @@
     }
 
     /* ===============================
-       FILTER PANEL UI (UNCHANGED)
+       FILTER PANEL UI (2.9.2 STYLE)
     =============================== */
     const panel = document.createElement('div');
     panel.id = 'bucket-filter-panel';
@@ -196,7 +196,7 @@
     document.body.appendChild(panel);
 
     /* ===============================
-       DRAG (RESTORED)
+       DRAG (UNCHANGED FROM 2.9.2)
     =============================== */
     let dragging = false, ox = 0, oy = 0;
     panel.addEventListener('mousedown', e => {
@@ -212,7 +212,7 @@
     document.addEventListener('mouseup', () => dragging = false);
 
     /* ===============================
-       BUCKET LOGIC — FIXED
+       BUCKET DETECTION (STABLE)
     =============================== */
     const seenBuckets = new Set();
 
@@ -226,7 +226,6 @@
 
             seenBuckets.add(title);
 
-            const list = document.getElementById('filter-list');
             const item = document.createElement('div');
             item.className = 'filter-item';
 
@@ -240,8 +239,42 @@
             lbl.textContent = title;
 
             item.append(chk, lbl);
-            list.appendChild(item);
+            document.getElementById('filter-list').appendChild(item);
         });
+    }
+
+    /* ===============================
+       FORCE RENDER (3 PASSES)
+    =============================== */
+    function forceRenderOnce() {
+        const board = document.querySelector('.columnsList');
+        if (!board) return;
+
+        let pos = 0;
+        const max = board.scrollWidth - board.clientWidth;
+        const step = board.clientWidth * 0.9;
+
+        function scroll() {
+            pos += step;
+            board.scrollLeft = pos;
+            if (pos < max) {
+                setTimeout(scroll, 300);
+            } else {
+                setTimeout(() => board.scrollLeft = 0, 400);
+            }
+        }
+
+        scroll();
+    }
+
+    function forceRenderMultiple(times = 3, delay = 1200) {
+        let count = 0;
+        const runner = setInterval(() => {
+            forceRenderOnce();
+            syncBuckets();
+            count++;
+            if (count >= times) clearInterval(runner);
+        }, delay);
     }
 
     /* ===============================
@@ -265,9 +298,11 @@
     const init = setInterval(() => {
         if (!document.querySelector('.taskBoardView')) return;
         clearInterval(init);
+
         applyTheme();
         syncBuckets();
-        setInterval(syncBuckets, 1000); // ← THE FIX
+        forceRenderMultiple(3, 1300);     // ← NEW
+        setInterval(syncBuckets, 1000);   // ← SAFETY NET
     }, 500);
 
 })();
