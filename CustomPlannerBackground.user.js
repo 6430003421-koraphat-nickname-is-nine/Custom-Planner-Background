@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Custom Planner Background 2.9.9.4
+// @name         Custom Planner Background 2.9.9.5
 // @namespace    https://tampermonkey.net/
-// @version      2.9.9.4
+// @version      2.9.9.5
 // @description  Planner background with random Google Drive images + bucket filter (multi-pass, data-index ordered)
 // @match        https://tasks.office.com/*
 // @match        https://planner.microsoft.com/*
@@ -16,7 +16,7 @@
 (function () {
   "use strict";
 
-  const version = "2.9.9.4";
+  const version = "2.9.9.5";
 
   /* ===============================
        GOOGLE DRIVE BACKGROUNDS
@@ -190,6 +190,11 @@
         .text-center {
             text-align: center;
         }
+        .text-xs {
+            font-size: 0.75rem;
+            line-height: 1rem;
+        }
+
         .text-sm {
             font-size: 0.875rem;
             line-height: 1.25rem;
@@ -290,15 +295,15 @@
             </div>
         </div>
         <div id="bucket-filter-header">
-            <span class="text-center text-xl">Bucket Filter v${version}</span>
+            <span class="text-center text-base">Bucket Filter v${version}</span>
             <span id="bucket-filter-toggle">–</span>
         </div>
         <div id="bucket-filter-body">
             <div class="flex-col">
-                <h2 class="text-base" id="bucket-count">Total buckets: 0</h2>
+                <h2 class="text-sm" id="bucket-count">Total buckets: 0</h2>
                 <div class="row-between">
-                    <button id="hide-all" class="bnsfh2button text-sm">Hide all</button>
-                    <button id="show-all" class="bnsfh2button text-sm">Show all</button>
+                    <button id="hide-all" class="bnsfh2button text-xs">Hide all</button>
+                    <button id="show-all" class="bnsfh2button text-xs">Show all</button>
                 </div>
             </div>
             <div id="filter-list"></div>
