@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Custom Planner Background 2.9.8
+// @name         Custom Planner Background 2.9.9
 // @namespace    https://tampermonkey.net/
-// @version      2.9.8
+// @version      2.9.9
 // @description  Planner background with random Google Drive images + bucket filter (multi-pass, data-index ordered)
 // @match        https://tasks.office.com/*
 // @match        https://planner.microsoft.com/*
@@ -16,7 +16,7 @@
 (function () {
   "use strict";
 
-  const version = "2.9.8";
+  const version = "2.9.9";
 
   /* ===============================
        GOOGLE DRIVE BACKGROUNDS
