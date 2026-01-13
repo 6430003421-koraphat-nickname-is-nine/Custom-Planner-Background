@@ -114,17 +114,59 @@
             padding: 0 4px;
         }
 
-        #randomBG {
+         #randomBG {
+            /* Pumpkin / Omaha Orange */
             background-color: #FF8C00;
-            color: #F7B512;
-            font-family: "Clarendon", "Georgia", serif;
+
+            /* BNSF Yellow text */
+            //color: #F7B512;
+            color: #FFFF00;
+
+            font-family: "Clarendon", "Clarendon Bold",
+                         "Georgia", "Times New Roman", serif;
             font-weight: 700;
+
+
             font-size: 16px;
+            line-height: 1.1;
+
             padding: 8px 16px;
-            border: 2px solid #000;
-            box-shadow: inset 0 0 0 2px #F7B512;
-            border-radius: 8px;
             cursor: pointer;
+
+            /* DOUBLE BORDER */
+            border: 2px solid #000;                 /* outer black */
+            box-shadow:
+
+                inset 0 0 0 2px #FFFF00,             /* inner yellow */
+                2px 2px 0 rgba(0,0,0,0.5);           /* slight lift */
+
+            border-radius: 8px;
+
+            /* Text stroke simulation (Pullman Green) */
+            text-shadow:
+                -1px -1px 0 #384841,
+                 1px -1px 0 #384841,
+                -1px  1px 0 #384841,
+                 1px  1px 0 #384841,
+                 0px  2px 0 #384841;
+
+            letter-spacing: 0.75px;
+
+            transition: transform 0.05s ease, box-shadow 0.05s ease;
+        }
+
+        #randomBG:hover {
+            transform: translate(-1px, -1px);
+            box-shadow:
+                inset 0 0 0 2px #F7B512,
+                3px 3px 0 rgba(0,0,0,0.6);
+        }
+
+        #randomBG:active {
+            transform: translate(1px, 1px);
+            box-shadow:
+                inset 0 0 0 2px #F7B512,
+                1px 1px 0 rgba(0,0,0,0.6);
         }
 
         .filter-item {
