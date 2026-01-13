@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Custom Planner Background 2.9.4
+// @name         Custom Planner Background 2.9.4.2
 // @namespace    https://tampermonkey.net/
-// @version      2.9.4
+// @version      2.9.4.2
 // @description  Planner background with random Google Drive images + bucket filter (stable bucket detection)
 // @match        https://tasks.office.com/*
 // @match        https://planner.microsoft.com/*
@@ -19,7 +19,7 @@
     /* ===============================
        GOOGLE DRIVE BACKGROUNDS
     =============================== */
-
+    const version = '2.9.4.2';
     const ggDriveBGList = [
         "https://drive.google.com/file/d/12IPXWnj7pgw0yvmyNY9LQz1FUxBq3RcX/view",
         "https://drive.google.com/file/d/1dAY5Rol6ZcPK_rG7dJe4kDyzelnKDP_M/view",
@@ -117,7 +117,7 @@
             <button id="randomBG">Random Background</button>
         </div>
         <div id="bucket-filter-header">
-            <span>Bucket Filter</span>
+            <span>Bucket Filter version ${version}</span>
             <span id="bucket-filter-toggle">+</span>
         </div>
         <div id="bucket-filter-body" style="display:none;">
