@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Custom Planner Background 2.9.9.3
+// @name         Custom Planner Background 2.9.9.4
 // @namespace    https://tampermonkey.net/
-// @version      2.9.9.3
+// @version      2.9.9.4
 // @description  Planner background with random Google Drive images + bucket filter (multi-pass, data-index ordered)
 // @match        https://tasks.office.com/*
 // @match        https://planner.microsoft.com/*
@@ -16,7 +16,7 @@
 (function () {
   "use strict";
 
-  const version = "2.9.9.3";
+  const version = "2.9.9.4";
 
   /* ===============================
        GOOGLE DRIVE BACKGROUNDS
@@ -182,6 +182,19 @@
             flex-direction: row;
             justify-content: space-between;
         } 
+        
+        .flex-col {
+            display: flex;
+            flex-direction: column;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .text-sm {
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+        }
+
         .text-base {
             font-size: 1rem;
             line-height: 1.5rem;
@@ -277,25 +290,36 @@
             </div>
         </div>
         <div id="bucket-filter-header">
-            <span>Bucket Filter v${version}</span>
+            <span class="text-center text-xl">Bucket Filter v${version}</span>
             <span id="bucket-filter-toggle">–</span>
         </div>
         <div id="bucket-filter-body">
-            // <div style="font-size:11px; opacity:0.8;">Check to hide</div>
-            <div class="row-between">
-
+            <div class="flex-col">
                 <h2 class="text-base" id="bucket-count">Total buckets: 0</h2>
-
-                <div>
-                    <button id="hide-all" class="bnsfh2button text-base">Hide all</button>
-                    <button id="show-all" class="bnsfh2button text-base">Show all</button>
+                <div class="row-between">
+                    <button id="hide-all" class="bnsfh2button text-sm">Hide all</button>
+                    <button id="show-all" class="bnsfh2button text-sm">Show all</button>
                 </div>
             </div>
             <div id="filter-list"></div>
         </div>
     `;
   document.body.appendChild(panel);
+  /* ===============================
+       BUCKET FILTER TOGGLE (RESTORED)
+    =============================== */
+  const filterBody = panel.querySelector("#bucket-filter-body");
+  const filterToggle = panel.querySelector("#bucket-filter-toggle");
 
+  let filterOpen = true; // default OPEN (matches 2.9.9.x)
+
+  filterToggle.addEventListener("click", (e) => {
+    e.stopPropagation(); // prevent drag conflict
+
+    filterOpen = !filterOpen;
+    filterBody.style.display = filterOpen ? "block" : "none";
+    filterToggle.textContent = filterOpen ? "–" : "+";
+  });
   /* ===============================
        DRAG (UNCHANGED)
     =============================== */
@@ -303,10 +327,18 @@
     ox = 0,
     oy = 0;
   panel.addEventListener("mousedown", (e) => {
+    if (
+      e.target.closest("button") ||
+      e.target.tagName === "INPUT" ||
+      e.target.id === "bucket-filter-toggle"
+    )
+      return;
+
     dragging = true;
     ox = e.clientX - panel.offsetLeft;
     oy = e.clientY - panel.offsetTop;
   });
+
   document.addEventListener("mousemove", (e) => {
     if (!dragging) return;
     panel.style.left = e.clientX - ox + "px";
