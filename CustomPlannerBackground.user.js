@@ -1,14 +1,12 @@
 // ==UserScript==
-// @name         Custom Planner Background 2.9.4.3
+// @name         Custom Planner Background 2.9.4.4
 // @namespace    https://tampermonkey.net/
-// @version      2.9.4.3
-// @description  Planner background with random Google Drive images + bucket filter (stable & complete)
+// @version      2.9.4.4
+// @description  Planner background with random Google Drive images + stable bucket filter (rebased on 2.9.2)
 // @match        https://tasks.office.com/*
 // @match        https://planner.microsoft.com/*
 // @match        https://planner.cloud.microsoft/*
 // @match        https://*.office.com/*
-// @updateURL    https://raw.githubusercontent.com/6430003421-koraphat-nickname-is-nine/Custom-Planner-Background/main/CustomPlannerBackground.user.js
-// @downloadURL  https://raw.githubusercontent.com/6430003421-koraphat-nickname-is-nine/Custom-Planner-Background/main/CustomPlannerBackground.user.js
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==
@@ -19,7 +17,7 @@
     /* ===============================
        VERSION
     =============================== */
-    const version = '2.9.4.3';
+    const version = '2.9.4.4';
 
     /* ===============================
        GOOGLE DRIVE BACKGROUNDS
@@ -47,9 +45,8 @@
     let currentBgUrl = pickRandomBgUrl();
 
     /* ===============================
-       THEME CSS
+       BASE CSS (UNCHANGED FROM 2.9.2)
     =============================== */
-
     const baseCSS = `
         .ms-Fabric,
         #root,
@@ -98,7 +95,7 @@
             border-radius: 0.5rem;
             padding: 8px 10px;
             font-size: 12px;
-            min-width: 200px;
+            min-width: 180px;
             cursor: move;
             user-select: none;
             box-shadow: 2px 2px 0 rgba(0,0,0,0.25);
@@ -118,44 +115,17 @@
             padding: 0 4px;
         }
 
-        #bucket-filter-panel button:not(#randomBG) {
-            background: #fff;
-            border: 1px solid #000;
-            border-radius: 4px;
-            color: #000;
-            font-size: 12px;
-            padding: 2px 6px;
-            cursor: pointer;
-        }
-
-        #bucket-filter-panel button:not(#randomBG):hover {
-            background: #f3f3f3;
-        }
-
         #randomBG {
             background-color: #FF8C00;
-            color: #FFFF00;
+            color: #F7B512;
             font-family: "Clarendon", "Georgia", serif;
             font-weight: 700;
             font-size: 16px;
             padding: 8px 16px;
-            cursor: pointer;
             border: 2px solid #000;
-            box-shadow:
-                inset 0 0 0 2px #FFFF00,
-                2px 2px 0 rgba(0,0,0,0.5);
+            box-shadow: inset 0 0 0 2px #F7B512;
             border-radius: 8px;
-            text-shadow:
-                -1px -1px 0 #384841,
-                 1px -1px 0 #384841,
-                -1px  1px 0 #384841,
-                 1px  1px 0 #384841;
-        }
-
-        .filter-controls {
-            display: flex;
-            gap: 6px;
-            margin-bottom: 6px;
+            cursor: pointer;
         }
 
         .filter-item {
@@ -200,30 +170,7 @@
     }
 
     /* ===============================
-       FORCE RENDER BUCKETS (SAFE)
-    =============================== */
-    function forceRenderAllBucketsSlow() {
-        const board = document.querySelector('.columnsList');
-        if (!board) return;
-
-        let pos = 0;
-        const max = board.scrollWidth - board.clientWidth;
-        const step = board.clientWidth * 0.8;
-
-        function scroll() {
-            pos += step;
-            board.scrollLeft = pos;
-            if (pos < max) {
-                setTimeout(scroll, 350);
-            } else {
-                setTimeout(() => board.scrollLeft = 0, 600);
-            }
-        }
-        scroll();
-    }
-
-    /* ===============================
-       FILTER PANEL UI
+       FILTER PANEL UI (UNCHANGED)
     =============================== */
     const panel = document.createElement('div');
     panel.id = 'bucket-filter-panel';
@@ -233,9 +180,9 @@
         </div>
         <div id="bucket-filter-header">
             <span>Bucket Filter v${version}</span>
-            <span id="bucket-filter-toggle">+</span>
+            <span id="bucket-filter-toggle">–</span>
         </div>
-        <div id="bucket-filter-body" style="display:none;">
+        <div id="bucket-filter-body">
             <div style="font-size:11px; opacity:0.8;">Check to hide</div>
             <div class="filter-controls">
                 <button id="hide-all">Hide all</button>
@@ -246,16 +193,24 @@
     `;
     document.body.appendChild(panel);
 
-    const body = panel.querySelector('#bucket-filter-body');
-    const toggle = panel.querySelector('#bucket-filter-toggle');
-
-    toggle.onclick = () => {
-        body.style.display = body.style.display === 'block' ? 'none' : 'block';
-        toggle.textContent = body.style.display === 'block' ? '–' : '+';
-    };
+    /* ===============================
+       DRAG (RESTORED)
+    =============================== */
+    let dragging = false, ox = 0, oy = 0;
+    panel.addEventListener('mousedown', e => {
+        dragging = true;
+        ox = e.clientX - panel.offsetLeft;
+        oy = e.clientY - panel.offsetTop;
+    });
+    document.addEventListener('mousemove', e => {
+        if (!dragging) return;
+        panel.style.left = (e.clientX - ox) + 'px';
+        panel.style.top = (e.clientY - oy) + 'px';
+    });
+    document.addEventListener('mouseup', () => dragging = false);
 
     /* ===============================
-       BUCKET DETECTION (ROBUST)
+       BUCKET LOGIC — FIXED
     =============================== */
     const seenBuckets = new Set();
 
@@ -270,36 +225,21 @@
             seenBuckets.add(title);
 
             const list = document.getElementById('filter-list');
-            const id = title.replace(/\s+/g, '-');
-
             const item = document.createElement('div');
             item.className = 'filter-item';
 
             const chk = document.createElement('input');
             chk.type = 'checkbox';
-            chk.id = `chk-${id}`;
-
             chk.onchange = () => {
-                const target = [...document.querySelectorAll('.taskBoardColumn')]
-                    .find(c => c.querySelector('.columnTitle h3')?.innerText.trim() === title);
-                if (target) target.style.display = chk.checked ? 'none' : '';
+                col.style.display = chk.checked ? 'none' : '';
             };
 
             const lbl = document.createElement('label');
-            lbl.htmlFor = chk.id;
             lbl.textContent = title;
 
             item.append(chk, lbl);
             list.appendChild(item);
         });
-    }
-
-    function observeBuckets() {
-        const board = document.querySelector('.columnsList');
-        if (!board) return;
-
-        const obs = new MutationObserver(syncBuckets);
-        obs.observe(board, { childList: true, subtree: true });
     }
 
     /* ===============================
@@ -318,43 +258,14 @@
     });
 
     /* ===============================
-       DRAGGABLE PANEL
-    =============================== */
-    (function makeDraggable(el) {
-        let drag = false, sx, sy, sl, st;
-
-        el.addEventListener('mousedown', e => {
-            if (e.target.closest('button') || e.target.tagName === 'INPUT') return;
-            drag = true;
-            const r = el.getBoundingClientRect();
-            sx = e.clientX; sy = e.clientY;
-            sl = r.left; st = r.top;
-            document.body.style.userSelect = 'none';
-        });
-
-        document.addEventListener('mousemove', e => {
-            if (!drag) return;
-            el.style.left = sl + (e.clientX - sx) + 'px';
-            el.style.top = st + (e.clientY - sy) + 'px';
-        });
-
-        document.addEventListener('mouseup', () => {
-            drag = false;
-            document.body.style.userSelect = '';
-        });
-    })(panel);
-
-    /* ===============================
        INIT
     =============================== */
     const init = setInterval(() => {
         if (!document.querySelector('.taskBoardView')) return;
         clearInterval(init);
-
         applyTheme();
-        observeBuckets();
         syncBuckets();
-        setTimeout(forceRenderAllBucketsSlow, 800);
+        setInterval(syncBuckets, 1000); // ← THE FIX
     }, 500);
 
 })();
