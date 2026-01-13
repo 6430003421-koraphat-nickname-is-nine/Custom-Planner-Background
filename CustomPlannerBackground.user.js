@@ -298,11 +298,16 @@
   /* ===============================
        FILTER PANEL UI (ADDITIVE)
     =============================== */
-  const panel = document.getElementById("bucket-filter-panel");
+  function injectChecklistFilterUI() {
+    const panel = document.getElementById("bucket-filter-panel");
+    if (!panel) return false;
 
-  const keywordRow = document.createElement("div");
-  keywordRow.style.marginTop = "6px";
-  keywordRow.innerHTML = `
+    const body = panel.querySelector("#bucket-filter-body");
+    if (!body || document.getElementById("checklistKeyword")) return true;
+
+    const keywordRow = document.createElement("div");
+    keywordRow.style.marginTop = "6px";
+    keywordRow.innerHTML = `
     <input
       id="checklistKeyword"
       type="text"
@@ -311,9 +316,9 @@
     />
   `;
 
-  panel
-    .querySelector("#bucket-filter-body")
-    .insertBefore(keywordRow, panel.querySelector("#filter-list"));
+    body.insertBefore(keywordRow, body.querySelector("#filter-list"));
+    return true;
+  }
 
   let checklistKeyword = "";
 
@@ -488,6 +493,8 @@
     clearInterval(init);
 
     applyTheme();
+    injectChecklistFilterUI();
+
     syncBuckets();
     forceRenderMultiple(3, 1300);
     setInterval(syncBuckets, 1000);
