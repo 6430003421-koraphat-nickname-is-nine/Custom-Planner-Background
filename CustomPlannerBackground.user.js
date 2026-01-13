@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Custom Planner Background 2.9.9.2
+// @name         Custom Planner Background 2.9.9.3
 // @namespace    https://tampermonkey.net/
-// @version      2.9.9.2
+// @version      2.9.9.3
 // @description  Planner background with random Google Drive images + bucket filter (multi-pass, data-index ordered)
 // @match        https://tasks.office.com/*
 // @match        https://planner.microsoft.com/*
@@ -16,7 +16,7 @@
 (function () {
   "use strict";
 
-  const version = "2.9.9.2";
+  const version = "2.9.9.3";
 
   /* ===============================
        GOOGLE DRIVE BACKGROUNDS
@@ -119,7 +119,7 @@
             background-color: #FF8C00;
 
             /* BNSF Yellow text */
-            //color: #F7B512;
+            /* color: #F7B512; */
             color: #FFFF00;
 
             font-family: "Clarendon", "Clarendon Bold",
@@ -284,7 +284,8 @@
             // <div style="font-size:11px; opacity:0.8;">Check to hide</div>
             <div class="row-between">
 
-                <h2 class="text-base">Total buckets: ${bucketMap.size}</h2>
+                <h2 class="text-base" id="bucket-count">Total buckets: 0</h2>
+
                 <div>
                     <button id="hide-all" class="bnsfh2button text-base">Hide all</button>
                     <button id="show-all" class="bnsfh2button text-base">Show all</button>
@@ -312,6 +313,15 @@
     panel.style.top = e.clientY - oy + "px";
   });
   document.addEventListener("mouseup", () => (dragging = false));
+
+  /* ===============================
+       Update Item in the Filter List LOGIC
+    =============================== */
+
+  function updateBucketCount() {
+    const el = document.getElementById("bucket-count");
+    if (el) el.textContent = `Total buckets: ${bucketMap.size}`;
+  }
 
   /* ===============================
        BUCKET LOGIC (STREAM + SORT)
@@ -361,6 +371,7 @@
         item.append(chk, lbl);
         list.appendChild(item);
       });
+    updateBucketCount();
   }
 
   /* ===============================
