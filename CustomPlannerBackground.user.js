@@ -1,8 +1,7 @@
-// ==UserScript==
 // @name         Custom Planner Background 2.9.7
 // @namespace    https://tampermonkey.net/
 // @version      2.9.7
-// @description  Planner background with random Google Drive images + bucket filter ordered by data-index
+// @description  Planner background with random Google Drive images + ordered bucket filter (data-index)
 // @match        https://tasks.office.com/*
 // @match        https://planner.microsoft.com/*
 // @match        https://planner.cloud.microsoft/*
@@ -47,7 +46,7 @@
     let currentBgUrl = pickRandomBgUrl();
 
     /* ===============================
-       THEME (UNCHANGED)
+       THEME (BASECSS — UNCHANGED FROM 2.9.2)
     =============================== */
     const baseCSS = `
         .ms-Fabric,
@@ -182,65 +181,80 @@
             </div>
         </div>
 
-        <div style="font-weight:bold;margin-bottom:4px;">
-            Bucket Filter v${version}
+        <div id="bucket-filter-header">
+            <span>Bucket Filter v${version}</span>
+            <span id="bucket-filter-toggle">–</span>
         </div>
 
-        <div style="font-size:11px; opacity:0.8;">Check to hide</div>
-        <div>
-            <button id="hide-all">Hide all</button>
-            <button id="show-all">Show all</button>
+        <div id="bucket-filter-body">
+            <div style="font-size:11px; opacity:0.8;">Check to hide</div>
+            <div>
+                <button id="hide-all">Hide all</button>
+                <button id="show-all">Show all</button>
+            </div>
+            <div id="filter-list"></div>
         </div>
-        <div id="filter-list"></div>
     `;
     document.body.appendChild(panel);
 
     /* ===============================
-       BUCKET COLLECTION (data-index based)
+       DRAGGABLE LOGIC (RESTORED, SAME AS 2.9.2)
     =============================== */
+    let dragging = false, ox = 0, oy = 0;
 
+    panel.addEventListener('mousedown', e => {
+        if (e.target.closest('button')) return;
+        dragging = true;
+        ox = e.clientX - panel.offsetLeft;
+        oy = e.clientY - panel.offsetTop;
+    });
+
+    document.addEventListener('mousemove', e => {
+        if (!dragging) return;
+        panel.style.left = (e.clientX - ox) + 'px';
+        panel.style.top = (e.clientY - oy) + 'px';
+    });
+
+    document.addEventListener('mouseup', () => dragging = false);
+
+    /* ===============================
+       BUCKET LOGIC (data-index based)
+    =============================== */
     let bucketList = [];
 
-    function collectBucketsByIndex() {
+    function collectBuckets() {
         const cols = document.querySelectorAll('li.taskBoardColumn[data-index]');
-        const result = [];
-
-        cols.forEach(col => {
-            const titleEl = col.querySelector('.columnTitle h3');
-            if (!titleEl) return;
-
-            result.push({
-                index: Number(col.dataset.index),
-                title: titleEl.innerText.trim(),
-                id: col.id
-            });
-        });
-
-        result.sort((a, b) => a.index - b.index);
-        bucketList = result;
-    }
-
-    function getColumnById(id) {
-        return document.getElementById(id);
+        bucketList = [...cols]
+            .map(col => {
+                const h3 = col.querySelector('.columnTitle h3');
+                if (!h3) return null;
+                return {
+                    index: Number(col.dataset.index),
+                    title: h3.innerText.trim(),
+                    id: col.id
+                };
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.index - b.index);
     }
 
     function renderBucketList() {
         const list = document.getElementById('filter-list');
         list.innerHTML = '';
 
-        bucketList.forEach(bucket => {
+        bucketList.forEach(b => {
             const item = document.createElement('div');
             item.className = 'filter-item';
 
             const chk = document.createElement('input');
             chk.type = 'checkbox';
             chk.onchange = () => {
-                const col = getColumnById(bucket.id);
+                const col = document.getElementById(b.id);
                 if (col) col.style.display = chk.checked ? 'none' : '';
             };
 
             const lbl = document.createElement('label');
-            lbl.textContent = bucket.title;
+            lbl.textContent = b.title;
 
             item.append(chk, lbl);
             list.appendChild(item);
@@ -254,13 +268,13 @@
         if (e.target.id === 'randomBG') changeBackground();
 
         if (e.target.id === 'refreshBuckets') {
-            collectBucketsByIndex();
+            collectBuckets();
             renderBucketList();
         }
 
         if (e.target.id === 'hide-all') {
             bucketList.forEach(b => {
-                const c = getColumnById(b.id);
+                const c = document.getElementById(b.id);
                 if (c) c.style.display = 'none';
             });
             document.querySelectorAll('#filter-list input').forEach(c => c.checked = true);
@@ -268,7 +282,7 @@
 
         if (e.target.id === 'show-all') {
             bucketList.forEach(b => {
-                const c = getColumnById(b.id);
+                const c = document.getElementById(b.id);
                 if (c) c.style.display = '';
             });
             document.querySelectorAll('#filter-list input').forEach(c => c.checked = false);
@@ -283,7 +297,7 @@
         clearInterval(init);
 
         applyTheme();
-        collectBucketsByIndex();
+        collectBuckets();
         renderBucketList();
     }, 500);
 
