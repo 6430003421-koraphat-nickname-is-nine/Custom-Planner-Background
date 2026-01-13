@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Custom Planner Background 2.9.7.2
+// @name         Custom Planner Background 2.9.7.3
 // @namespace    https://tampermonkey.net/
-// @version      2.9.7.2
+// @version      2.9.7.3
 // @description  Planner background with random Google Drive images + ordered bucket filter (data-index)
 // @match        https://tasks.office.com/*
 // @match        https://planner.microsoft.com/*
@@ -19,7 +19,7 @@
     /* ===============================
        VERSION
     =============================== */
-    const version = '2.9.7.2';
+    const version = '2.9.7.3';
 
     /* ===============================
        GOOGLE DRIVE BACKGROUNDS
@@ -47,7 +47,7 @@
     let currentBgUrl = pickRandomBgUrl();
 
     /* ===============================
-       THEME (BASECSS — UNCHANGED FROM 2.9.2)
+       THEME (BASECSS — UNCHANGED)
     =============================== */
     const baseCSS = `
         .ms-Fabric,
@@ -199,7 +199,7 @@
     document.body.appendChild(panel);
 
     /* ===============================
-       DRAGGABLE LOGIC (RESTORED, SAME AS 2.9.2)
+       DRAGGABLE LOGIC (UNCHANGED)
     =============================== */
     let dragging = false, ox = 0, oy = 0;
 
@@ -219,9 +219,32 @@
     document.addEventListener('mouseup', () => dragging = false);
 
     /* ===============================
-       BUCKET LOGIC (data-index based)
+       BUCKET LOGIC (FORCE RENDER + SORT)
     =============================== */
     let bucketList = [];
+
+    function forceRenderAllBuckets(done) {
+        const board = document.querySelector('.columnsList');
+        if (!board) return done?.();
+
+        let pos = 0;
+        const max = board.scrollWidth - board.clientWidth;
+        const step = board.clientWidth * 0.9;
+
+        function scroll() {
+            pos += step;
+            board.scrollLeft = pos;
+            if (pos < max) {
+                setTimeout(scroll, 250);
+            } else {
+                setTimeout(() => {
+                    board.scrollLeft = 0;
+                    done?.();
+                }, 400);
+            }
+        }
+        scroll();
+    }
 
     function collectBuckets() {
         const cols = document.querySelectorAll('li.taskBoardColumn[data-index]');
@@ -269,8 +292,10 @@
         if (e.target.id === 'randomBG') changeBackground();
 
         if (e.target.id === 'refreshBuckets') {
-            collectBuckets();
-            renderBucketList();
+            forceRenderAllBuckets(() => {
+                collectBuckets();
+                renderBucketList();
+            });
         }
 
         if (e.target.id === 'hide-all') {
@@ -298,8 +323,10 @@
         clearInterval(init);
 
         applyTheme();
-        collectBuckets();
-        renderBucketList();
+        forceRenderAllBuckets(() => {
+            collectBuckets();
+            renderBucketList();
+        });
     }, 500);
 
 })();
