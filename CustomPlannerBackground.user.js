@@ -8,6 +8,8 @@
 // @match        https://planner.cloud.microsoft/*
 // @match        https://*.office.com/*
 // @grant        none
+// @updateURL    https://raw.githubusercontent.com/6430003421-koraphat-nickname-is-nine/Custom-Planner-Background/main/CustomPlannerBackground.user.js
+// @downloadURL  https://raw.githubusercontent.com/6430003421-koraphat-nickname-is-nine/Custom-Planner-Background/main/CustomPlannerBackground.user.js
 // @run-at       document-idle
 // ==/UserScript==
 
