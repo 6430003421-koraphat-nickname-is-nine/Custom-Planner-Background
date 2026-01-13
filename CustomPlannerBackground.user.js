@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Custom Planner Background 2.9.9
+// @name         Custom Planner Background 2.9.9.2
 // @namespace    https://tampermonkey.net/
-// @version      2.9.9
+// @version      2.9.9.2
 // @description  Planner background with random Google Drive images + bucket filter (multi-pass, data-index ordered)
 // @match        https://tasks.office.com/*
 // @match        https://planner.microsoft.com/*
@@ -16,7 +16,7 @@
 (function () {
   "use strict";
 
-  const version = "2.9.9";
+  const version = "2.9.9.2";
 
   /* ===============================
        GOOGLE DRIVE BACKGROUNDS
@@ -174,6 +174,62 @@
             gap: 6px;
             align-items: center;
             margin-bottom: 4px;
+            font-size: 1rem;
+            line-height: 1.5rem;
+        }
+        .row-between {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+        } 
+        .text-base {
+            font-size: 1rem;
+            line-height: 1.5rem;
+        }
+        .text-xl {
+            font-size: 1.25rem;
+            line-height: 1.4rem;
+        }
+
+        .bnsfh2button {
+            /* Pumpkin / Omaha Orange */
+            background-color: #FF8C00;
+
+            /* BNSF Yellow text */
+            //color: #F7B512;
+            color: #FFFF00;
+
+            font-family: "Clarendon", "Clarendon Bold",
+                         "Georgia", "Times New Roman", serif;
+            font-weight: 700;
+
+
+            font-size: 16px;
+            line-height: 1.1;
+
+            padding: 8px 16px;
+            cursor: pointer;
+
+            /* DOUBLE BORDER */
+            border: 2px solid #000;                 /* outer black */
+            box-shadow:
+
+                inset 0 0 0 2px #FFFF00,             /* inner yellow */
+                2px 2px 0 rgba(0,0,0,0.5);           /* slight lift */
+
+            border-radius: 8px;
+
+            /* Text stroke simulation (Pullman Green) */
+            text-shadow:
+                -1px -1px 0 #384841,
+                 1px -1px 0 #384841,
+                -1px  1px 0 #384841,
+                 1px  1px 0 #384841,
+                 0px  2px 0 #384841;
+
+            letter-spacing: 0.75px;
+
+            transition: transform 0.05s ease, box-shadow 0.05s ease;
         }
     `;
 
@@ -225,10 +281,14 @@
             <span id="bucket-filter-toggle">–</span>
         </div>
         <div id="bucket-filter-body">
-            <div style="font-size:11px; opacity:0.8;">Check to hide</div>
-            <div>
-                <button id="hide-all">Hide all</button>
-                <button id="show-all">Show all</button>
+            // <div style="font-size:11px; opacity:0.8;">Check to hide</div>
+            <div class="row-between">
+
+                <h2 class="text-base">Total buckets: ${bucketMap.size}</h2>
+                <div>
+                    <button id="hide-all" class="bnsfh2button text-base">Hide all</button>
+                    <button id="show-all" class="bnsfh2button text-base">Show all</button>
+                </div>
             </div>
             <div id="filter-list"></div>
         </div>
