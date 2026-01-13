@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Custom Planner Background 2.9.9.7
+// @name         Custom Planner Background 2.9.9.8
 // @namespace    https://tampermonkey.net/
-// @version      2.9.9.7
+// @version      2.9.9.8
 // @description  Planner background with random Google Drive images + bucket filter (multi-pass, data-index ordered)
 // @match        https://tasks.office.com/*
 // @match        https://planner.microsoft.com/*
@@ -16,7 +16,7 @@
 (function () {
   "use strict";
 
-  const version = "2.9.9.7";
+  const version = "2.9.9.8";
 
   /* ===============================
        GOOGLE DRIVE BACKGROUNDS
@@ -393,6 +393,7 @@
           index: idx,
           title: h3.innerText.trim(),
           id: col.id,
+          hidden: false, // 👈 persist state
         });
       });
 
@@ -411,9 +412,12 @@
 
         const chk = document.createElement("input");
         chk.type = "checkbox";
+        chk.checked = b.hidden; // ✅ RESTORE STATE
+
         chk.onchange = () => {
+          b.hidden = chk.checked; // ✅ SAVE STATE
           const col = document.getElementById(b.id);
-          if (col) col.style.display = chk.checked ? "none" : "";
+          if (col) col.style.display = b.hidden ? "none" : "";
         };
 
         const lbl = document.createElement("label");
@@ -421,7 +425,12 @@
 
         item.append(chk, lbl);
         list.appendChild(item);
+
+        // ✅ Re-apply visibility after re-render
+        const col = document.getElementById(b.id);
+        if (col) col.style.display = b.hidden ? "none" : "";
       });
+
     updateBucketCount();
   }
 
@@ -472,6 +481,7 @@
 
     if (e.target.id === "hide-all") {
       bucketMap.forEach((b) => {
+        b.hidden = true;
         const c = document.getElementById(b.id);
         if (c) c.style.display = "none";
       });
@@ -482,6 +492,7 @@
 
     if (e.target.id === "show-all") {
       bucketMap.forEach((b) => {
+        b.hidden = false;
         const c = document.getElementById(b.id);
         if (c) c.style.display = "";
       });
