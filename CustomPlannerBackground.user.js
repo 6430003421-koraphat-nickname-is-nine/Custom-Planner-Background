@@ -59,6 +59,83 @@
             background-position: center !important;
             background-repeat: no-repeat !important;
         }
+
+        .columnsList,
+        .container {
+            background-color: transparent !important;
+        }
+
+        .taskBoardColumn {
+            background-color: rgba(255,255,255,0.25) !important;
+        }
+
+        .taskCard,
+        .taskBoardCard {
+            background-color: rgba(255,255,255,0.5) !important;
+        }
+
+        .header,
+        .filterPivotRow {
+            background-color: rgba(255,255,255,0.5) !important;
+        }
+
+        .sectionToggleButton {
+            background-color: rgba(255,255,255,0.875) !important;
+        }
+
+        .sideNav {
+            background-color: rgba(255,255,255,0.75) !important;
+        }
+
+        #bucket-filter-panel {
+            position: fixed;
+            left: 32px;
+            top: 384px;
+            z-index: 2147483647;
+            background-color: #fb923c;
+            border: 2px solid #000;
+            border-radius: 0.5rem;
+            padding: 8px 10px;
+            font-size: 12px;
+            min-width: 180px;
+            cursor: move;
+            user-select: none;
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.25);
+        }
+
+        #bucket-filter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            cursor: move;
+        }
+
+        #bucket-filter-toggle {
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0 4px;
+        }
+
+        #randomBG {
+            background-color: #FF8C00;
+            color: #F7B512;
+            font-family: "Clarendon", "Georgia", serif;
+            font-weight: 700;
+            font-size: 16px;
+            padding: 8px 16px;
+            border: 2px solid #000;
+            box-shadow: inset 0 0 0 2px #F7B512;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .filter-item {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 4px;
+        }
     `;
 
     function applyTheme() {
