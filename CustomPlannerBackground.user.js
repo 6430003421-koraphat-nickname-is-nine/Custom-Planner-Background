@@ -1,14 +1,12 @@
 // ==UserScript==
-// @name         Custom Planner Background 2.10.3
+// @name         Custom Planner Background 2.10.4
 // @namespace    https://tampermonkey.net/
-// @version      2.10.3
+// @version      2.10.4
 // @description  Planner background with random Google Drive images + bucket filter + checklist keyword filter
 // @match        https://tasks.office.com/*
 // @match        https://planner.microsoft.com/*
 // @match        https://planner.cloud.microsoft/*
 // @match        https://*.office.com/*
-// @updateURL    https://raw.githubusercontent.com/6430003421-koraphat-nickname-is-nine/Custom-Planner-Background/main/CustomPlannerBackground.user.js
-// @downloadURL  https://raw.githubusercontent.com/6430003421-koraphat-nickname-is-nine/Custom-Planner-Background/main/CustomPlannerBackground.user.js
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==
@@ -16,11 +14,11 @@
 (function () {
   "use strict";
 
-  const version = "2.10.3";
+  const version = "2.10.4";
 
   /* ===============================
-       GOOGLE DRIVE BACKGROUNDS
-    =============================== */
+     GOOGLE DRIVE BACKGROUNDS
+  =============================== */
   const ggDriveBGList = [
     "https://drive.google.com/file/d/12IPXWnj7pgw0yvmyNY9LQz1FUxBq3RcX/view",
     "https://drive.google.com/file/d/1dAY5Rol6ZcPK_rG7dJe4kDyzelnKDP_M/view",
@@ -283,7 +281,9 @@
 
   function changeBackground() {
     currentBgUrl = pickRandomBgUrl();
-    document.getElementById("planner-style").textContent = `
+    const s = document.getElementById("planner-style");
+    if (!s) return;
+    s.textContent = `
       .ms-Fabric,
       #root,
       .appContent,
@@ -296,35 +296,86 @@
   }
 
   /* ===============================
-       FILTER PANEL UI (ADDITIVE)
-    =============================== */
+     BUCKET FILTER PANEL (RESTORED)
+  =============================== */
+  function createBucketFilterPanel() {
+    if (document.getElementById("bucket-filter-panel")) return;
+
+    const panel = document.createElement("div");
+    panel.id = "bucket-filter-panel";
+
+    panel.innerHTML = `
+      <div id="bucket-filter-header" class="row-between">
+        <span>Bucket Filter v${version}</span>
+        <span id="bucket-filter-toggle">–</span>
+      </div>
+
+      <div id="bucket-filter-body" class="flex-col">
+        <div id="bucket-count" class="text-xs" style="margin-bottom:4px;">
+          Total buckets: 0
+        </div>
+
+        <div id="filter-list"></div>
+
+        <button id="refreshBuckets" class="bnsfh2button text-sm" style="margin-top:6px;">
+          Refresh Buckets
+        </button>
+
+        <button id="randomBG" class="bnsfh2button text-sm" style="margin-top:6px;">
+          Random Background
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(panel);
+
+    // Drag logic (unchanged behavior)
+    let dragging = false,
+      ox = 0,
+      oy = 0;
+
+    panel.addEventListener("mousedown", (e) => {
+      if (!e.target.closest("#bucket-filter-header")) return;
+      dragging = true;
+      ox = e.clientX - panel.offsetLeft;
+      oy = e.clientY - panel.offsetTop;
+      e.preventDefault();
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (!dragging) return;
+      panel.style.left = e.clientX - ox + "px";
+      panel.style.top = e.clientY - oy + "px";
+    });
+
+    document.addEventListener("mouseup", () => (dragging = false));
+  }
+
+  /* ===============================
+     CHECKLIST KEYWORD UI (ADDITIVE)
+  =============================== */
   function injectChecklistFilterUI() {
-    const panel = document.getElementById("bucket-filter-panel");
-    if (!panel) return false;
+    const body = document.querySelector("#bucket-filter-body");
+    if (!body || document.getElementById("checklistKeyword")) return;
 
-    const body = panel.querySelector("#bucket-filter-body");
-    if (!body || document.getElementById("checklistKeyword")) return true;
-
-    const keywordRow = document.createElement("div");
-    keywordRow.style.marginTop = "6px";
-    keywordRow.innerHTML = `
-    <input
-      id="checklistKeyword"
-      type="text"
-      placeholder="Filter checklist keyword"
-      style="width:100%; padding:4px; font-size:12px;"
-    />
-  `;
-
-    body.insertBefore(keywordRow, body.querySelector("#filter-list"));
-    return true;
+    const row = document.createElement("div");
+    row.style.marginBottom = "6px";
+    row.innerHTML = `
+      <input
+        id="checklistKeyword"
+        type="text"
+        placeholder="Filter checklist keyword"
+        style="width:100%; padding:4px; font-size:12px;"
+      />
+    `;
+    body.insertBefore(row, body.firstChild);
   }
 
   let checklistKeyword = "";
 
   /* ===============================
-       BUCKET LOGIC (UNCHANGED)
-    =============================== */
+     BUCKET LOGIC (SORT BY data-index)
+  =============================== */
   const bucketMap = new Map();
 
   function updateBucketCount() {
@@ -356,6 +407,8 @@
 
   function renderBucketList() {
     const list = document.getElementById("filter-list");
+    if (!list) return;
+
     list.innerHTML = "";
 
     [...bucketMap.values()]
@@ -367,7 +420,6 @@
         const chk = document.createElement("input");
         chk.type = "checkbox";
         chk.checked = b.hidden;
-
         chk.onchange = () => {
           b.hidden = chk.checked;
           const col = document.getElementById(b.id);
@@ -389,10 +441,11 @@
   }
 
   /* ===============================
-       CHECKLIST KEYWORD FILTER (NEW)
-    =============================== */
+     CHECKLIST FILTER
+  =============================== */
   function applyChecklistFilter() {
     const keyword = checklistKeyword.trim();
+
     document
       .querySelectorAll("li.taskBoardColumn[data-index]")
       .forEach((col) => {
@@ -402,7 +455,6 @@
 
         const cards = col.querySelectorAll(".taskBoardCard");
 
-        // Bucket hidden ALWAYS wins
         if (bucket.hidden) {
           cards.forEach((c) => (c.style.display = "none"));
           return;
@@ -414,20 +466,20 @@
             return;
           }
 
-          const texts = [
+          const text = [
             ...card.querySelectorAll(".checklistPreview .ms-Checkbox-text"),
           ]
             .map((el) => el.innerText)
             .join(" ");
 
-          card.style.display = texts.includes(keyword) ? "" : "none";
+          card.style.display = text.includes(keyword) ? "" : "none";
         });
       });
   }
 
   /* ===============================
-       FORCE RENDER (UNCHANGED)
-    =============================== */
+     FORCE RENDER (3 PASSES)
+  =============================== */
   function forceRenderOnce() {
     const board = document.querySelector(".columnsList");
     if (!board) return;
@@ -456,8 +508,8 @@
   }
 
   /* ===============================
-       EVENTS (ADDITIVE)
-    =============================== */
+     EVENTS
+  =============================== */
   document.addEventListener("input", (e) => {
     if (e.target.id === "checklistKeyword") {
       checklistKeyword = e.target.value;
@@ -470,29 +522,19 @@
 
     if (e.target.id === "refreshBuckets") {
       bucketMap.clear();
-      document.getElementById("filter-list").innerHTML = "";
       forceRenderMultiple(3, 1300);
-    }
-
-    if (e.target.id === "hide-all") {
-      bucketMap.forEach((b) => (b.hidden = true));
-      syncBuckets();
-    }
-
-    if (e.target.id === "show-all") {
-      bucketMap.forEach((b) => (b.hidden = false));
-      syncBuckets();
     }
   });
 
   /* ===============================
-       INIT
-    =============================== */
+     INIT
+  =============================== */
   const init = setInterval(() => {
     if (!document.querySelector(".taskBoardView")) return;
     clearInterval(init);
 
     applyTheme();
+    createBucketFilterPanel();
     injectChecklistFilterUI();
 
     syncBuckets();
