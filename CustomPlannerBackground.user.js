@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Custom Planner Background 2.9.9.8
+// @name         Custom Planner Background 2.10.1
 // @namespace    https://tampermonkey.net/
-// @version      2.9.9.8
-// @description  Planner background with random Google Drive images + bucket filter (multi-pass, data-index ordered)
+// @version      2.10.1
+// @description  Planner background with random Google Drive images + bucket filter + checklist keyword filter
 // @match        https://tasks.office.com/*
 // @match        https://planner.microsoft.com/*
 // @match        https://planner.cloud.microsoft/*
@@ -16,7 +16,7 @@
 (function () {
   "use strict";
 
-  const version = "2.9.9.8";
+  const version = "2.10.1";
 
   /* ===============================
        GOOGLE DRIVE BACKGROUNDS
@@ -269,115 +269,63 @@
     const s = document.createElement("style");
     s.id = "planner-style";
     s.textContent = `
-            .ms-Fabric,
-            #root,
-            .appContent,
-            .basicPlanView,
-            .taskBoardView {
-                background-image: url('${currentBgUrl}') !important;
-            }
-            ${baseCSS}
-        `;
+      .ms-Fabric,
+      #root,
+      .appContent,
+      .basicPlanView,
+      .taskBoardView {
+        background-image: url('${currentBgUrl}') !important;
+      }
+      ${baseCSS}
+    `;
     document.head.appendChild(s);
   }
 
   function changeBackground() {
     currentBgUrl = pickRandomBgUrl();
     document.getElementById("planner-style").textContent = `
-            .ms-Fabric,
-            #root,
-            .appContent,
-            .basicPlanView,
-            .taskBoardView {
-                background-image: url('${currentBgUrl}') !important;
-            }
-            ${baseCSS}
-        `;
+      .ms-Fabric,
+      #root,
+      .appContent,
+      .basicPlanView,
+      .taskBoardView {
+        background-image: url('${currentBgUrl}') !important;
+      }
+      ${baseCSS}
+    `;
   }
 
   /* ===============================
-       FILTER PANEL UI
+       FILTER PANEL UI (ADDITIVE)
     =============================== */
-  const panel = document.createElement("div");
-  panel.id = "bucket-filter-panel";
-  panel.innerHTML = `
-        <div style="margin-bottom:6px; text-align:center;">
-            <button id="randomBG">Random Background</button>
-            
-        </div>
-        <div id="bucket-filter-header">
-            <span class="text-center text-base">Bucket Filter v${version}</span>
-            <span id="bucket-filter-toggle">–</span>
-        </div>
-        <div id="bucket-filter-body">
-            <div style="margin-top:4px;">
-                <button id="refreshBuckets" class="bnsfh2button">Refresh buckets</button>
-            </div>
-            <div class="flex-col">
-                <h2 class="text-sm" id="bucket-count">Total buckets: 0</h2>
-                <div class="row-between">
-                    <button id="hide-all" class="bnsfh2button text-xs">Hide all</button>
-                    <button id="show-all" class="bnsfh2button text-xs">Show all</button>
-                </div>
-            </div>
-            <div id="filter-list"></div>
-        </div>
-    `;
-  document.body.appendChild(panel);
-  /* ===============================
-       BUCKET FILTER TOGGLE (RESTORED)
-    =============================== */
-  const filterBody = panel.querySelector("#bucket-filter-body");
-  const filterToggle = panel.querySelector("#bucket-filter-toggle");
+  const panel = document.getElementById("bucket-filter-panel");
 
-  let filterOpen = true; // default OPEN (matches 2.9.9.x)
+  const keywordRow = document.createElement("div");
+  keywordRow.style.marginTop = "6px";
+  keywordRow.innerHTML = `
+    <input
+      id="checklistKeyword"
+      type="text"
+      placeholder="Filter checklist keyword"
+      style="width:100%; padding:4px; font-size:12px;"
+    />
+  `;
 
-  filterToggle.addEventListener("click", (e) => {
-    e.stopPropagation(); // prevent drag conflict
+  panel
+    .querySelector("#bucket-filter-body")
+    .insertBefore(keywordRow, panel.querySelector("#filter-list"));
 
-    filterOpen = !filterOpen;
-    filterBody.style.display = filterOpen ? "block" : "none";
-    filterToggle.textContent = filterOpen ? "–" : "+";
-  });
-  /* ===============================
-       DRAG (UNCHANGED)
-    =============================== */
-  let dragging = false,
-    ox = 0,
-    oy = 0;
-  panel.addEventListener("mousedown", (e) => {
-    if (
-      e.target.closest("button") ||
-      e.target.tagName === "INPUT" ||
-      e.target.id === "bucket-filter-toggle"
-    )
-      return;
-
-    dragging = true;
-    ox = e.clientX - panel.offsetLeft;
-    oy = e.clientY - panel.offsetTop;
-  });
-
-  document.addEventListener("mousemove", (e) => {
-    if (!dragging) return;
-    panel.style.left = e.clientX - ox + "px";
-    panel.style.top = e.clientY - oy + "px";
-  });
-  document.addEventListener("mouseup", () => (dragging = false));
+  let checklistKeyword = "";
 
   /* ===============================
-       Update Item in the Filter List LOGIC
+       BUCKET LOGIC (UNCHANGED)
     =============================== */
+  const bucketMap = new Map();
 
   function updateBucketCount() {
     const el = document.getElementById("bucket-count");
     if (el) el.textContent = `Total buckets: ${bucketMap.size}`;
   }
-
-  /* ===============================
-       BUCKET LOGIC (STREAM + SORT)
-    =============================== */
-  const bucketMap = new Map();
 
   function syncBuckets() {
     document
@@ -393,11 +341,12 @@
           index: idx,
           title: h3.innerText.trim(),
           id: col.id,
-          hidden: false, // 👈 persist state
+          hidden: false,
         });
       });
 
     renderBucketList();
+    applyChecklistFilter();
   }
 
   function renderBucketList() {
@@ -412,12 +361,13 @@
 
         const chk = document.createElement("input");
         chk.type = "checkbox";
-        chk.checked = b.hidden; // ✅ RESTORE STATE
+        chk.checked = b.hidden;
 
         chk.onchange = () => {
-          b.hidden = chk.checked; // ✅ SAVE STATE
+          b.hidden = chk.checked;
           const col = document.getElementById(b.id);
           if (col) col.style.display = b.hidden ? "none" : "";
+          applyChecklistFilter();
         };
 
         const lbl = document.createElement("label");
@@ -426,7 +376,6 @@
         item.append(chk, lbl);
         list.appendChild(item);
 
-        // ✅ Re-apply visibility after re-render
         const col = document.getElementById(b.id);
         if (col) col.style.display = b.hidden ? "none" : "";
       });
@@ -435,7 +384,44 @@
   }
 
   /* ===============================
-       FORCE RENDER (MULTI PASS)
+       CHECKLIST KEYWORD FILTER (NEW)
+    =============================== */
+  function applyChecklistFilter() {
+    const keyword = checklistKeyword.trim();
+    document
+      .querySelectorAll("li.taskBoardColumn[data-index]")
+      .forEach((col) => {
+        const idx = Number(col.dataset.index);
+        const bucket = bucketMap.get(idx);
+        if (!bucket) return;
+
+        const cards = col.querySelectorAll(".taskBoardCard");
+
+        // Bucket hidden ALWAYS wins
+        if (bucket.hidden) {
+          cards.forEach((c) => (c.style.display = "none"));
+          return;
+        }
+
+        cards.forEach((card) => {
+          if (!keyword) {
+            card.style.display = "";
+            return;
+          }
+
+          const texts = [
+            ...card.querySelectorAll(".checklistPreview .ms-Checkbox-text"),
+          ]
+            .map((el) => el.innerText)
+            .join(" ");
+
+          card.style.display = texts.includes(keyword) ? "" : "none";
+        });
+      });
+  }
+
+  /* ===============================
+       FORCE RENDER (UNCHANGED)
     =============================== */
   function forceRenderOnce() {
     const board = document.querySelector(".columnsList");
@@ -448,11 +434,8 @@
     function scroll() {
       pos += step;
       board.scrollLeft = pos;
-      if (pos < max) {
-        setTimeout(scroll, 300);
-      } else {
-        setTimeout(() => (board.scrollLeft = 0), 400);
-      }
+      if (pos < max) setTimeout(scroll, 300);
+      else setTimeout(() => (board.scrollLeft = 0), 400);
     }
     scroll();
   }
@@ -468,8 +451,15 @@
   }
 
   /* ===============================
-       EVENTS
+       EVENTS (ADDITIVE)
     =============================== */
+  document.addEventListener("input", (e) => {
+    if (e.target.id === "checklistKeyword") {
+      checklistKeyword = e.target.value;
+      applyChecklistFilter();
+    }
+  });
+
   document.addEventListener("click", (e) => {
     if (e.target.id === "randomBG") changeBackground();
 
@@ -480,25 +470,13 @@
     }
 
     if (e.target.id === "hide-all") {
-      bucketMap.forEach((b) => {
-        b.hidden = true;
-        const c = document.getElementById(b.id);
-        if (c) c.style.display = "none";
-      });
-      document
-        .querySelectorAll("#filter-list input")
-        .forEach((c) => (c.checked = true));
+      bucketMap.forEach((b) => (b.hidden = true));
+      syncBuckets();
     }
 
     if (e.target.id === "show-all") {
-      bucketMap.forEach((b) => {
-        b.hidden = false;
-        const c = document.getElementById(b.id);
-        if (c) c.style.display = "";
-      });
-      document
-        .querySelectorAll("#filter-list input")
-        .forEach((c) => (c.checked = false));
+      bucketMap.forEach((b) => (b.hidden = false));
+      syncBuckets();
     }
   });
 
@@ -512,6 +490,6 @@
     applyTheme();
     syncBuckets();
     forceRenderMultiple(3, 1300);
-    setInterval(syncBuckets, 1000); // safety net
+    setInterval(syncBuckets, 1000);
   }, 500);
 })();
