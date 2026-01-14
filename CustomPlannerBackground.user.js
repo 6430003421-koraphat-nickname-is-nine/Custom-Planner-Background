@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Custom Planner Background 2.10.5
+// @name         Custom Planner Background 2.11.1
 // @namespace    https://tampermonkey.net/
-// @version      2.10.5
+// @version      2.11.1
 // @description  Planner background + bucket filter panel + checklist search panel
 // @match        https://tasks.office.com/*
 // @match        https://planner.microsoft.com/*
@@ -14,11 +14,11 @@
 (function () {
   "use strict";
 
-  const version = "2.10.5";
+  const version = "2.11.1";
 
-  /* ===============================
-     BACKGROUND (unchanged logic)
-  =============================== */
+  /* USER CAN CHANGE THESE LINKS LIST TI ANY GOOGLE DRIVE IMAGE LINKS, REMEMBER TO CHANGE THE PERMISSION TO "ANYONE WITH THE LINK"
+  ========================================================================================================================================
+  */
   const ggDriveBGList = [
     "https://drive.google.com/file/d/12IPXWnj7pgw0yvmyNY9LQz1FUxBq3RcX/view",
     "https://drive.google.com/file/d/1dAY5Rol6ZcPK_rG7dJe4kDyzelnKDP_M/view",
@@ -27,7 +27,9 @@
     "https://drive.google.com/file/d/1tcVIBGh9FQZdPM7KFjet6cMTpmw50k4o/view",
     "https://drive.google.com/file/d/1vfW_E9cGJLX-UDkAoEa0UnUI0L5EIeC_/view",
   ];
-
+  /* END OF USER CONFIGURABLE LINKS, DONT TOUCH ANYTHING BELOW THIS LINE
+  ========================================================================================================================================
+  */
   function extractFileId(url) {
     const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
     return m ? m[1] : null;
@@ -175,6 +177,13 @@
             /* font-size: 1rem; */
             /* line-height: 1.5rem; */
         }
+        #filter-list {
+            max-height: 160px;        /* adjust as you like */
+            overflow-y: auto;
+            margin-top: 6px;
+            padding-right: 4px;       /* space for scrollbar */
+        }
+
         .row-between {
             display: flex;
             flex-direction: row;
@@ -302,9 +311,9 @@
     .boarder-1{
       border-width: 1px;
       border-style: solid;
-    } 
     }
-    .boarder-black{  
+    }
+    .boarder-black{
       border-color: #000;
     }
     `;
@@ -408,7 +417,9 @@
     const filterToggle = panel.querySelector("#bucket-filter-toggle");
 
     let filterOpen = true;
-
+    filterToggle.addEventListener("mousedown", (e) => {
+      e.stopPropagation(); // ✅ block drag start ONLY on toggle
+    });
     filterToggle.addEventListener("click", (e) => {
       e.stopPropagation(); // prevent drag conflict
       filterOpen = !filterOpen;
@@ -428,6 +439,8 @@
     const panel = document.createElement("div");
     panel.id = "checklist-search-panel";
 
+    panel.style.left = "32px";
+    panel.style.top = "288px";
     panel.innerHTML = `
     <div>
       <div id="search-panel-header">
@@ -506,7 +519,7 @@
         };
 
         const lbl = document.createElement("label");
-        lbl.textContent = b.title;
+        lbl.textContent = "(" + b.index + ") " + b.title;
 
         row.append(chk, lbl);
         list.appendChild(row);
@@ -531,10 +544,15 @@
 
         const cards = col.querySelectorAll(".taskBoardCard");
 
+        // ✅ BUCKET HIDDEN ALWAYS WINS
         if (bucket.hidden) {
+          col.style.display = "none";
           cards.forEach((c) => (c.style.display = "none"));
           return;
         }
+
+        // bucket visible
+        col.style.display = "";
 
         cards.forEach((card) => {
           if (!keyword) {
@@ -552,6 +570,7 @@
         });
       });
   }
+
   /* ===============================
        Update Item in the Filter List LOGIC
     =============================== */
@@ -610,11 +629,14 @@
     }
     if (e.target.id === "hide-all") {
       bucketMap.forEach((b) => (b.hidden = true));
-      syncBuckets();
+      renderBucketList(); // ✅ sync checkboxes
+      applyChecklistFilter(); // ✅ enforce visibility
     }
+
     if (e.target.id === "show-all") {
       bucketMap.forEach((b) => (b.hidden = false));
-      syncBuckets();
+      renderBucketList(); // ✅ sync checkboxes
+      applyChecklistFilter(); // ✅ enforce visibility
     }
   });
 
