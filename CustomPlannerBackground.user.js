@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Custom Planner Background 2.11.1
+// @name         Custom Planner Background 2.11.2
 // @namespace    https://tampermonkey.net/
-// @version      2.11.1
+// @version      2.11.2
 // @description  Planner background + bucket filter panel + checklist search panel
 // @match        https://tasks.office.com/*
 // @match        https://planner.microsoft.com/*
@@ -14,7 +14,7 @@
 (function () {
   "use strict";
 
-  const version = "2.11.1";
+  const version = "2.11.2";
 
   /* USER CAN CHANGE THESE LINKS LIST TI ANY GOOGLE DRIVE IMAGE LINKS, REMEMBER TO CHANGE THE PERMISSION TO "ANYONE WITH THE LINK"
   ========================================================================================================================================
@@ -510,7 +510,7 @@
         const chk = document.createElement("input");
         chk.type = "checkbox";
         chk.checked = b.hidden;
-
+        let index = b.index + 1;
         chk.onchange = () => {
           b.hidden = chk.checked;
           const col = document.getElementById(b.id);
@@ -519,7 +519,7 @@
         };
 
         const lbl = document.createElement("label");
-        lbl.textContent = "(" + b.index + ") " + b.title;
+        lbl.textContent = "(" + index + ") " + b.title;
 
         row.append(chk, lbl);
         list.appendChild(row);
