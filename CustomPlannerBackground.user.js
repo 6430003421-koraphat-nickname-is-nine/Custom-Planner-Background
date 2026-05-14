@@ -26,6 +26,8 @@
     "https://drive.google.com/file/d/1UDOH-MwL_UKJvBIR-kZTAV7Dgf4Pl0Mz/view",
     "https://drive.google.com/file/d/1tcVIBGh9FQZdPM7KFjet6cMTpmw50k4o/view",
     "https://drive.google.com/file/d/1vfW_E9cGJLX-UDkAoEa0UnUI0L5EIeC_/view",
+    "https://drive.google.com/file/d/1T_XnDBLuilq2oPwu1dfUUsVdh1v34Uw4/view",
+    "https://drive.google.com/file/d/1t_1q4XWS9k2Ac4XazTOn86PBFupc16IF/view",
   ];
   /* END OF USER CONFIGURABLE LINKS, DONT TOUCH ANYTHING BELOW THIS LINE
   ========================================================================================================================================
